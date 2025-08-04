@@ -73,7 +73,6 @@ public class LevelManagerStartupSupportScript : MonoBehaviour
             centerOfMassManagerScript.SetUsingCableDrivenRobotFlagToTrue();
         }
         else if (kinematicModelAccessScript.dataSourceSelector == ModelDataSourceSelector.ViveOnly)
-
         {
             viveTrackerDataManagerScript.SetUsingCableDrivenRobotFlagToTrue();
         }

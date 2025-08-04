@@ -7,12 +7,9 @@
 
 
 
-
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System;
-using MathNet.Numerics;
 using UnityEngine;
 
 public class BuildStructureMatricesForBeltsThisFrameScript : MonoBehaviour
@@ -264,13 +261,6 @@ public class BuildStructureMatricesForBeltsThisFrameScript : MonoBehaviour
         // We put it there so that there are fewer places to select options.
         pelvicBeltCableNumberSelector = highLevelControllerScript.GetPelvicBeltNumberOfCablesSelector();
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
-
 
 
     private void SetupForChestBelt()
