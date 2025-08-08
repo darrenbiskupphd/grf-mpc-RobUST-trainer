@@ -95,18 +95,18 @@ namespace Valve.VR.InteractionSystem.Sample
                     {
                         float moveFac = Mathf.InverseLerp(0, frictionTime, groundedTime);
                         //print(moveFac);
-                        Vector3 lerpV = Vector3.Lerp(rigidbody.velocity, animationDelta, moveFac * Time.deltaTime * 30);
+                        Vector3 lerpV = Vector3.Lerp(rigidbody.linearVelocity, animationDelta, moveFac * Time.deltaTime * 30);
                         animationDelta.x = lerpV.x;
                         animationDelta.z = lerpV.z;
                     }
 
                     // adding a little downward force to keep him on the floor
                     animationDelta.y += -0.2f;// rb.velocity.y;
-                    rigidbody.velocity = animationDelta;
+                    rigidbody.linearVelocity = animationDelta;
                 }
                 else
                 {
-                    rigidbody.velocity += input * Time.deltaTime * airControl;
+                    rigidbody.linearVelocity += input * Time.deltaTime * airControl;
                 }
             }
         }
@@ -146,8 +146,8 @@ namespace Valve.VR.InteractionSystem.Sample
 
             if (!isGrounded)
             {
-                animator.SetFloat("FallSpeed", Mathf.Abs(rigidbody.velocity.y));
-                animator.SetFloat("Jump", rigidbody.velocity.y);
+                animator.SetFloat("FallSpeed", Mathf.Abs(rigidbody.linearVelocity.y));
+                animator.SetFloat("Jump", rigidbody.linearVelocity.y);
             }
         }
 
@@ -204,9 +204,9 @@ namespace Valve.VR.InteractionSystem.Sample
             jumpTimer = 0.1f;
             animator.applyRootMotion = false;
             rigidbody.position += Vector3.up * 0.03f;
-            Vector3 velocity = rigidbody.velocity;
+            Vector3 velocity = rigidbody.linearVelocity;
             velocity.y = jumpVelocity;
-            rigidbody.velocity = velocity;
+            rigidbody.linearVelocity = velocity;
         }
     }
 }

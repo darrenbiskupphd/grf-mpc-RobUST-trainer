@@ -1608,3 +1608,10 @@ ModelImporter:
   additionalBone: 0
   userData: 
   assetBundleName: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 32647
+  packageName: SteamVR Plugin
+  packageVersion: 2.8.0 (sdk 2.0.10)
+  assetPath: Assets/SteamVR/InteractionSystem/Samples/JoeJeff/Animation/HumanoidStandTurn.fbx
+  uploadId: 638640

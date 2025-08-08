@@ -47,7 +47,7 @@ namespace Valve.VR.InteractionSystem.Sample
                 {
                     float t = Mathf.Pow(35, dropTimer);
 
-                    body.velocity = Vector3.Lerp(body.velocity, Vector3.zero, Time.fixedDeltaTime * 4);
+                    body.linearVelocity = Vector3.Lerp(body.linearVelocity, Vector3.zero, Time.fixedDeltaTime * 4);
                     if (body.useGravity)
                         body.AddForce(-Physics.gravity);
 
