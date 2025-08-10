@@ -2,19 +2,21 @@ using UnityEngine;
 
 /// <summary>
 /// A simple data structure to hold the position and rotation of a tracker.
-/// This is a non-MonoBehaviour class, used for organizing data.
+/// NOTE: Data is stored in a RIGHT-HANDED coordinate system (OpenVR standard).
+/// This is a non-MonoBehaviour class, used for organizing data efficiently.
 /// </summary>
 [System.Serializable]
 public class TrackerData
 {
+    /// <summary>
+    /// Position in the right-handed coordinate system.
+    /// </summary>
     public Vector3 Position;
-    public Quaternion Rotation;
 
-    public TrackerData(Vector3 position, Quaternion rotation)
-    {
-        Position = position;
-        Rotation = rotation;
-    }
+    /// <summary>
+    /// Rotation in the right-handed coordinate system.
+    /// </summary>
+    public Quaternion Rotation;
 }
 
 /// <summary>

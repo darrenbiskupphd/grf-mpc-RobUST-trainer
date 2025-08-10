@@ -1,203 +1,206 @@
 using UnityEngine;
 using System.Threading;
+using System;
 using Valve.VR;
 
 /// <summary>
 /// Manages Vive trackers using direct OpenVR API with dedicated threading.
 /// Provides high-frequency (90Hz) tracker data independent of Unity's framerate.
+/// Bypasses Unity transforms for maximum performance and background thread safety.
 /// </summary>
 public class TrackerManager : MonoBehaviour
 {
-    [Header("Tracker Serial Numbers")]
-    [Tooltip("Serial number of the Vive tracker on the human's body (for CoM estimation).")]
-    public string comTrackerSerial = "LHR-12345678";
+    [Header("Tracker Configuration")]
+    [Tooltip("Serial number of the CoM tracker (found in SteamVR settings)")]
+    public string comTrackerSerial = "LHR-FFFFFFFF"; // Replace with your tracker's serial
+    
+    [Tooltip("Serial number of the end-effector tracker")]
+    public string endEffectorTrackerSerial = "LHR-FFFFFFFF"; // Replace with your tracker's serial
 
-    [Tooltip("Serial number of the Vive tracker on the end-effector chest belt.")]
-    public string endEffectorTrackerSerial = "LHR-87654321";
-
-    // OpenVR tracking
+    // OpenVR system
     private CVRSystem vrSystem;
-    private uint comTrackerIndex = OpenVR.k_unTrackedDeviceIndexInvalid;
-    private uint endEffectorTrackerIndex = OpenVR.k_unTrackedDeviceIndexInvalid;
+    private TrackedDevicePose_t[] trackedDevicePoses;
+
+    // Device tracking
+    private uint comTrackerDeviceId = OpenVR.k_unTrackedDeviceIndexInvalid;
+    private uint endEffectorTrackerDeviceId = OpenVR.k_unTrackedDeviceIndexInvalid;
 
     // Threading
     private Thread trackingThread;
     private volatile bool isTracking = false;
     private readonly object dataLock = new object();
 
-    // Current tracker data - thread-safe access
-    private TrackerData comTrackerData;
-    private TrackerData endEffectorTrackerData;
+    // Latest tracker data (thread-safe)
+    private readonly TrackerData comTrackerData = new TrackerData();
+    private readonly TrackerData endEffectorTrackerData = new TrackerData();
 
     /// <summary>
-    /// Initializes OpenVR and starts the tracking thread.
-    /// Called by RobotController in the correct dependency order.
+    /// Initializes the tracker manager with direct OpenVR access.
     /// </summary>
-    /// <returns>True if initialization succeeded, false otherwise</returns>
     public bool Initialize()
     {
-        // Initialize OpenVR
-        var eError = EVRInitError.None;
-        vrSystem = OpenVR.Init(ref eError, EVRApplicationType.VRApplication_Background);
-        
-        if (eError != EVRInitError.None)
+        try
         {
-            Debug.LogError($"Failed to initialize OpenVR: {eError}", this);
+            // Initialize OpenVR in a way that doesn't require a headset
+            EVRInitError eVRInitError = EVRInitError.None;
+            vrSystem = OpenVR.Init(ref eVRInitError, EVRApplicationType.VRApplication_Background);
+            
+            if (eVRInitError != EVRInitError.None)
+            {
+                Debug.LogError($"OpenVR initialization failed: {eVRInitError}. Ensure SteamVR is running.");
+                return false;
+            }
+
+            // Pre-allocate pose arrays
+            trackedDevicePoses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
+
+            // Find tracker devices by serial number
+            if (!FindTrackerDevices())
+            {
+                Debug.LogError("Failed to find required Vive trackers. Check serial numbers and ensure trackers are on.");
+                return false;
+            }
+
+            // Start high-frequency tracking thread
+            isTracking = true;
+            trackingThread = new Thread(TrackingLoop) { IsBackground = true };
+            trackingThread.Start();
+
+            Debug.Log($"TrackerManager initialized - Direct OpenVR tracking at 90Hz");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"TrackerManager initialization failed: {e.Message}");
             return false;
         }
-
-        // Find tracker device indices by serial number
-        if (!FindTrackerIndices())
-        {
-            Debug.LogError("Failed to find required tracker devices.", this);
-            OpenVR.Shutdown();
-            return false;
-        }
-
-        // Initialize data structures
-        comTrackerData = new TrackerData(Vector3.zero, Quaternion.identity);
-        endEffectorTrackerData = new TrackerData(Vector3.zero, Quaternion.identity);
-
-        // Start tracking thread
-        isTracking = true;
-        trackingThread = new Thread(TrackingLoop) { IsBackground = true };
-        trackingThread.Start();
-
-        Debug.Log($"TrackerManager initialized with CoM tracker {comTrackerIndex} and EndEffector tracker {endEffectorTrackerIndex}");
-        return true;
     }
 
     /// <summary>
-    /// Finds the device indices for our specific tracker serial numbers.
+    /// Finds tracker devices by serial number and assigns device IDs.
     /// </summary>
-    private bool FindTrackerIndices()
+    private bool FindTrackerDevices()
     {
-        bool foundCom = false, foundEndEffector = false;
-
+        var serialNumberBuffer = new System.Text.StringBuilder((int)OpenVR.k_unMaxPropertyStringSize);
+        
         for (uint deviceId = 0; deviceId < OpenVR.k_unMaxTrackedDeviceCount; deviceId++)
         {
-            if (vrSystem.GetTrackedDeviceClass(deviceId) == ETrackedDeviceClass.GenericTracker)
+            if (vrSystem.GetTrackedDeviceClass(deviceId) != ETrackedDeviceClass.GenericTracker)
+                continue;
+
+            // Get device serial number
+            var error = ETrackedPropertyError.TrackedProp_Success;
+            vrSystem.GetStringTrackedDeviceProperty(deviceId, 
+                ETrackedDeviceProperty.Prop_SerialNumber_String, 
+                serialNumberBuffer, OpenVR.k_unMaxPropertyStringSize, ref error);
+
+            if (error != ETrackedPropertyError.TrackedProp_Success)
+                continue;
+
+            string serialNumber = serialNumberBuffer.ToString();
+            
+            // Log every tracker found for easier debugging and setup
+            Debug.Log($"Discovered tracker - Device: {deviceId}, Serial: {serialNumber}");
+
+            // Match serial numbers to assign device IDs (case-insensitive)
+            if (string.Equals(serialNumber, comTrackerSerial, StringComparison.OrdinalIgnoreCase))
             {
-                var serialNumber = GetDeviceSerialNumber(deviceId);
-                
-                if (serialNumber == comTrackerSerial)
-                {
-                    comTrackerIndex = deviceId;
-                    foundCom = true;
-                }
-                else if (serialNumber == endEffectorTrackerSerial)
-                {
-                    endEffectorTrackerIndex = deviceId;
-                    foundEndEffector = true;
-                }
+                comTrackerDeviceId = deviceId;
+                Debug.Log($"--> Matched CoM tracker: {serialNumber}");
+            }
+            else if (string.Equals(serialNumber, endEffectorTrackerSerial, StringComparison.OrdinalIgnoreCase))
+            {
+                endEffectorTrackerDeviceId = deviceId;
+                Debug.Log($"--> Matched End-Effector tracker: {serialNumber}");
             }
         }
 
-        return foundCom && foundEndEffector;
-    }
-
-    /// <summary>
-    /// Gets the serial number of a tracked device.
-    /// </summary>
-    private string GetDeviceSerialNumber(uint deviceId)
-    {
-        var error = ETrackedPropertyError.TrackedProp_Success;
-        var capacity = vrSystem.GetStringTrackedDeviceProperty(deviceId, ETrackedDeviceProperty.Prop_SerialNumber_String, null, 0, ref error);
+        bool foundBoth = (comTrackerDeviceId != OpenVR.k_unTrackedDeviceIndexInvalid) && 
+                        (endEffectorTrackerDeviceId != OpenVR.k_unTrackedDeviceIndexInvalid);
         
-        if (capacity > 1)
+        if (!foundBoth)
         {
-            var result = new System.Text.StringBuilder((int)capacity);
-            vrSystem.GetStringTrackedDeviceProperty(deviceId, ETrackedDeviceProperty.Prop_SerialNumber_String, result, capacity, ref error);
-            return result.ToString();
+            Debug.LogError($"Missing trackers - CoM found: {comTrackerDeviceId != OpenVR.k_unTrackedDeviceIndexInvalid}, EndEffector found: {endEffectorTrackerDeviceId != OpenVR.k_unTrackedDeviceIndexInvalid}");
         }
-        
-        return "";
+
+        return foundBoth;
     }
 
     /// <summary>
-    /// Background thread that continuously polls tracker data at 90Hz.
+    /// High-frequency tracking loop running in dedicated background thread.
     /// </summary>
     private void TrackingLoop()
     {
-        long targetIntervalTicks = (long)Math.Round((double)System.Diagnostics.Stopwatch.Frequency / 90.0); // 90Hz intervals
+        // Use double precision for accuracy to avoid truncation errors over time
+        double exactIntervalTicks = (double)System.Diagnostics.Stopwatch.Frequency / 90.0; // 90Hz
+        long targetIntervalTicks = (long)Math.Round(exactIntervalTicks);
         long nextTargetTime = System.Diagnostics.Stopwatch.GetTimestamp() + targetIntervalTicks;
-        
-        var poses = new TrackedDevicePose_t[OpenVR.k_unMaxTrackedDeviceCount];
 
         while (isTracking)
         {
-            try
+            // Get latest poses from OpenVR - this is thread-safe
+            vrSystem.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0f, trackedDevicePoses);
+
+            var comPose = trackedDevicePoses[comTrackerDeviceId];
+            var endEffectorPose = trackedDevicePoses[endEffectorTrackerDeviceId];
+
+            // This check is essential to avoid errors when a tracker temporarily loses signal.
+            // We only update data when both trackers are actively tracking.
+            if (comPose.bPoseIsValid && endEffectorPose.bPoseIsValid)
             {
-                // Get latest poses from OpenVR
-                vrSystem.GetDeviceToAbsoluteTrackingPose(ETrackingUniverseOrigin.TrackingUniverseStanding, 0f, poses, (uint)poses.Length);
-
-                // Extract our specific tracker data
-                var newComData = ExtractTrackerData(poses[comTrackerIndex]);
-                var newEndEffectorData = ExtractTrackerData(poses[endEffectorTrackerIndex]);
-
-                // Thread-safe update
                 lock (dataLock)
                 {
-                    comTrackerData = newComData;
-                    endEffectorTrackerData = newEndEffectorData;
-                }
-
-                // Precise timing: wait until next target time (same pattern as TCP communicator)
-                long timeUntilNext = nextTargetTime - System.Diagnostics.Stopwatch.GetTimestamp();
-                double sleepMs = (double)timeUntilNext * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                
-                if (sleepMs > 0.1)
-                {
-                    System.Threading.SpinWait.SpinUntil(() => System.Diagnostics.Stopwatch.GetTimestamp() >= nextTargetTime);
-                }
-
-                // Advance to next target time
-                nextTargetTime += targetIntervalTicks;
-                
-                // Drift compensation
-                long currentTime = System.Diagnostics.Stopwatch.GetTimestamp();
-                if (nextTargetTime <= currentTime)
-                {
-                    nextTargetTime = currentTime + targetIntervalTicks;
+                    UpdateTrackerDataFromPose(comTrackerData, comPose);
+                    UpdateTrackerDataFromPose(endEffectorTrackerData, endEffectorPose);
                 }
             }
-            catch (System.Exception e)
+
+            // Precise timing: wait until the next target time using a high-resolution wait.
+            // This ensures we maintain a consistent 90Hz sampling rate.
+            SpinWait.SpinUntil(() => System.Diagnostics.Stopwatch.GetTimestamp() >= nextTargetTime);
+
+            // Advance to the next target time
+            nextTargetTime += targetIntervalTicks;
+            
+            // Drift compensation: if we've fallen behind, reset to the current time 
+            // to prevent the loop from trying to play catch-up indefinitely.
+            long currentTime = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (nextTargetTime <= currentTime)
             {
-                Debug.LogError($"Tracking error: {e.Message}");
-                // Continue tracking even if there's an error
+                nextTargetTime = currentTime + targetIntervalTicks;
             }
         }
     }
 
     /// <summary>
-    /// Converts OpenVR pose data to Unity TrackerData.
+    /// Updates a TrackerData object with a new OpenVR pose.
     /// </summary>
-    private TrackerData ExtractTrackerData(TrackedDevicePose_t pose)
+    private void UpdateTrackerDataFromPose(TrackerData trackerData, TrackedDevicePose_t pose)
     {
-        if (!pose.bPoseIsValid)
-        {
-            return new TrackerData(Vector3.zero, Quaternion.identity);
-        }
+        var m = pose.mDeviceToAbsoluteTracking;
 
-        // Convert OpenVR matrix to Unity position/rotation
-        var matrix = pose.mDeviceToAbsoluteTracking;
-        
-        // Extract position (convert from OpenVR coordinates to Unity)
-        Vector3 position = new Vector3(matrix.m[0, 3], matrix.m[1, 3], -matrix.m[2, 3]);
-        
-        // Extract rotation (convert from OpenVR coordinates to Unity)
-        Quaternion rotation = new Quaternion(
-            matrix.m[0, 1],
-            matrix.m[1, 1], 
-            -matrix.m[2, 1],
-            matrix.m[3, 1]
-        );
+        // Position is directly from the matrix (right-handed)
+        trackerData.Position.x = m.m3;
+        trackerData.Position.y = m.m7;
+        trackerData.Position.z = m.m11;
 
-        return new TrackerData(position, rotation);
+        // Rotation conversion from 3x4 matrix to Quaternion (right-handed)
+        float w = Mathf.Sqrt(Mathf.Max(0, 1 + m.m0 + m.m5 + m.m10)) / 2;
+        float x = Mathf.Sqrt(Mathf.Max(0, 1 + m.m0 - m.m5 - m.m10)) / 2;
+        float y = Mathf.Sqrt(Mathf.Max(0, 1 - m.m0 + m.m5 - m.m10)) / 2;
+        float z = Mathf.Sqrt(Mathf.Max(0, 1 - m.m0 - m.m5 + m.m10)) / 2;
+        x *= Mathf.Sign(m.m9 - m.m6);
+        y *= Mathf.Sign(m.m2 - m.m8);
+        z *= Mathf.Sign(m.m4 - m.m1);
+        
+        trackerData.Rotation.x = x;
+        trackerData.Rotation.y = y;
+        trackerData.Rotation.z = z;
+        trackerData.Rotation.w = w;
     }
 
     /// <summary>
-    /// Retrieves the current data for the CoM tracker (zero-check runtime).
+    /// Gets the latest data for the CoM tracker.
     /// </summary>
     public TrackerData GetCoMTrackerData()
     {
@@ -208,7 +211,7 @@ public class TrackerManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Retrieves the current data for the end-effector tracker (zero-check runtime).
+    /// Gets the latest data for the end-effector tracker.
     /// </summary>
     public TrackerData GetEndEffectorTrackerData()
     {
@@ -219,21 +222,16 @@ public class TrackerManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Stops tracking and cleans up OpenVR resources.
+    /// Stops the tracking thread when the application quits.
     /// </summary>
-    public void Shutdown()
+    void OnDestroy()
     {
-        if (!isTracking) return;
-        
         isTracking = false;
-        trackingThread?.Join(500);
+        if (trackingThread != null && trackingThread.IsAlive)
+        {
+            trackingThread.Join();
+        }
         OpenVR.Shutdown();
-        
-        Debug.Log("TrackerManager shutdown complete.");
-    }
-
-    void OnApplicationQuit()
-    {
-        Shutdown();
     }
 }
+

@@ -25,6 +25,13 @@ public class RobotController : MonoBehaviour
     [Tooltip("Flag to enable or disable sending data to LabVIEW.")]
     public bool isLabviewControlEnabled = true;
 
+    [Header("Tracker Visualization")]
+    [Tooltip("Visual representation of the CoM tracker.")]
+    public Transform comTrackerVisual;
+
+    [Tooltip("Visual representation of the end-effector tracker.")]
+    public Transform endEffectorVisual;
+
     private void Start()
     {
         if (!ValidateModules())
@@ -77,24 +84,28 @@ public class RobotController : MonoBehaviour
 
     private void Update()
     {
-        // In a real scenario, tracker and force plate data would be updated here.
-        // For now, we assume TrackerManager and ForcePlateManager are updated by their own mechanisms
-        // or a dedicated input manager script.
-
-        // 1. Get fresh data from trackers and force plates
+        // Get the latest raw tracker data (in the right-handed coordinate system).
         TrackerData comTrackerData = trackerManager.GetCoMTrackerData();
         TrackerData endEffectorTrackerData = trackerManager.GetEndEffectorTrackerData();
-        ForcePlateData forcePlateData = forcePlateManager.GetForcePlateData();
+        
+        // Update the visual representation in Unity's left-handed system.
+        // The conversion is done directly here to keep the logic self-contained.
+        // We assume comTrackerVisual and endEffectorVisual are assigned in the editor,
+        // so no null check is needed in this hot path.
 
-        // 2. Calculate the desired cable tensions
-        float[] desiredTensions = tensionPlanner.CalculateTensions(endEffectorTrackerData, forcePlateData);
+        // Convert CoM tracker pose for visualization
+        comTrackerVisual.SetPositionAndRotation(
+            new Vector3(comTrackerData.Position.x, comTrackerData.Position.y, -comTrackerData.Position.z),
+            new Quaternion(-comTrackerData.Rotation.x, -comTrackerData.Rotation.y, comTrackerData.Rotation.z, comTrackerData.Rotation.w)
+        );
 
-        // 3. Send data to LabVIEW
-        if (isLabviewControlEnabled && tcpCommunicator.IsConnected)
-        {
-            // Update only the tension values (motor configuration is fixed)
-            tcpCommunicator.UpdateTensionSetpoint(desiredTensions);
-        }
+        // Convert End-Effector tracker pose for visualization
+        endEffectorVisual.SetPositionAndRotation(
+            new Vector3(endEffectorTrackerData.Position.x, endEffectorTrackerData.Position.y, -endEffectorTrackerData.Position.z),
+            new Quaternion(-endEffectorTrackerData.Rotation.x, -endEffectorTrackerData.Rotation.y, endEffectorTrackerData.Rotation.z, endEffectorTrackerData.Rotation.w)
+        );
+
+        // Future physics and communication logic will go here.
     }
 
     // Validates that all required module references are assigned in the Inspector.
@@ -126,8 +137,8 @@ public class RobotController : MonoBehaviour
 
     void OnApplicationQuit()
     {
-        // Clean shutdown of threaded components
-        trackerManager?.Shutdown();
+        // Clean shutdown of threaded components.
+        // TrackerManager handles its own shutdown via its OnDestroy method.
         tcpCommunicator?.Disconnect();
     }
 }

@@ -180,8 +180,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f616882f0f732a32be958a422cfab9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  comTrackerObject: {fileID: 1329188043}
-  endEffectorTrackerObject: {fileID: 1611041664}
+  comTrackerSerial: LHR-2D89AB0C
+  endEffectorTrackerSerial: lhr-7979cfc9
 --- !u!114 &748268986
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -199,6 +199,8 @@ MonoBehaviour:
   tcpCommunicator: {fileID: 748268983}
   tensionPlanner: {fileID: 748268988}
   isLabviewControlEnabled: 1
+  comTrackerVisual: {fileID: 1329188047}
+  endEffectorVisual: {fileID: 1611041668}
 --- !u!4 &748268987
 Transform:
   m_ObjectHideFlags: 0

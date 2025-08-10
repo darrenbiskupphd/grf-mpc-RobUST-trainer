@@ -106,50 +106,40 @@ public class LabviewTcpCommunicator : MonoBehaviour
         
         while (isRunning && IsConnected)
         {
-            try
+            if (networkStream != null)
             {
-                if (networkStream != null)
+                // Get thread-safe copy of tension data
+                lock (dataLock)
                 {
-                    // Get thread-safe copy of tension data
-                    lock (dataLock)
-                    {
-                        Array.Copy(tensions, sendTensions, tensions.Length);
-                    }
-                    
-                    // Send data
-                    string packet = FormatPacket(motorNumbers, sendTensions);
-                    byte[] data = Encoding.ASCII.GetBytes(packet);
-                    networkStream.Write(data, 0, data.Length);
-                }
-
-                // Precise timing: wait until next target time
-                long timeUntilNext = nextTargetTime - System.Diagnostics.Stopwatch.GetTimestamp();
-                double sleepMs = (double)timeUntilNext * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
-                
-                if (sleepMs > 0.1)
-                {
-                    // Use SpinWait for sub-millisecond precision (0.1-1.0ms range)
-                    SpinWait.SpinUntil(() => System.Diagnostics.Stopwatch.GetTimestamp() >= nextTargetTime);
-                } // else: For sleepMs <= 0.1, just continue
-
-
-                // Advance to next target time
-                nextTargetTime += targetIntervalTicks;
-                
-                // Drift compensation: if we're behind, reset to maintain frequency
-                long currentTime = System.Diagnostics.Stopwatch.GetTimestamp();
-                if (nextTargetTime <= currentTime)
-                {
-                    // We're behind - skip ahead to maintain frequency
-                    nextTargetTime = currentTime + targetIntervalTicks;
+                    Array.Copy(tensions, sendTensions, tensions.Length);
                 }
                 
+                // Send data
+                string packet = FormatPacket(motorNumbers, sendTensions);
+                byte[] data = Encoding.ASCII.GetBytes(packet);
+                networkStream.Write(data, 0, data.Length);
             }
-            catch (Exception e)
+
+            // Precise timing: wait until next target time
+            long timeUntilNext = nextTargetTime - System.Diagnostics.Stopwatch.GetTimestamp();
+            double sleepMs = (double)timeUntilNext * 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+            
+            if (sleepMs > 0.1)
             {
-                UnityEngine.Debug.LogError($"Send error: {e.Message}");
-                IsConnected = false;
-                break;
+                // Use SpinWait for sub-millisecond precision (0.1-1.0ms range)
+                SpinWait.SpinUntil(() => System.Diagnostics.Stopwatch.GetTimestamp() >= nextTargetTime);
+            } // else: For sleepMs <= 0.1, just continue
+
+
+            // Advance to next target time
+            nextTargetTime += targetIntervalTicks;
+            
+            // Drift compensation: if we're behind, reset to maintain frequency
+            long currentTime = System.Diagnostics.Stopwatch.GetTimestamp();
+            if (nextTargetTime <= currentTime)
+            {
+                // We're behind - skip ahead to maintain frequency
+                nextTargetTime = currentTime + targetIntervalTicks;
             }
         }
     }
