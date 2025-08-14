@@ -179,24 +179,11 @@ public class TrackerManager : MonoBehaviour
     {
         var m = pose.mDeviceToAbsoluteTracking;
 
-        // Position is directly from the matrix (right-handed)
-        trackerData.Position.x = m.m3;
-        trackerData.Position.y = m.m7;
-        trackerData.Position.z = m.m11;
-
-        // Rotation conversion from 3x4 matrix to Quaternion (right-handed)
-        float w = Mathf.Sqrt(Mathf.Max(0, 1 + m.m0 + m.m5 + m.m10)) / 2;
-        float x = Mathf.Sqrt(Mathf.Max(0, 1 + m.m0 - m.m5 - m.m10)) / 2;
-        float y = Mathf.Sqrt(Mathf.Max(0, 1 - m.m0 + m.m5 - m.m10)) / 2;
-        float z = Mathf.Sqrt(Mathf.Max(0, 1 - m.m0 - m.m5 + m.m10)) / 2;
-        x *= Mathf.Sign(m.m9 - m.m6);
-        y *= Mathf.Sign(m.m2 - m.m8);
-        z *= Mathf.Sign(m.m4 - m.m1);
-        
-        trackerData.Rotation.x = x;
-        trackerData.Rotation.y = y;
-        trackerData.Rotation.z = z;
-        trackerData.Rotation.w = w;
+        // Convert the OpenVR 3x4 matrix to a Unity 4x4 matrix.
+        trackerData.PoseMatrix.m00 = m.m0; trackerData.PoseMatrix.m01 = m.m1; trackerData.PoseMatrix.m02 = m.m2; trackerData.PoseMatrix.m03 = m.m3;
+        trackerData.PoseMatrix.m10 = m.m4; trackerData.PoseMatrix.m11 = m.m5; trackerData.PoseMatrix.m12 = m.m6; trackerData.PoseMatrix.m13 = m.m7;
+        trackerData.PoseMatrix.m20 = m.m8; trackerData.PoseMatrix.m21 = m.m9; trackerData.PoseMatrix.m22 = m.m10; trackerData.PoseMatrix.m23 = m.m11;
+        trackerData.PoseMatrix.m30 = 0;    trackerData.PoseMatrix.m31 = 0;    trackerData.PoseMatrix.m32 = 0;    trackerData.PoseMatrix.m33 = 1;
     }
 
     /// <summary>

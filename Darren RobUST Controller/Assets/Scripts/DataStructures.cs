@@ -9,14 +9,15 @@ using UnityEngine;
 public class TrackerData
 {
     /// <summary>
-    /// Position in the right-handed coordinate system.
+    /// The full 4x4 homogeneous transformation matrix representing the tracker's pose.
+    /// NOTE: This matrix is in the RIGHT-HANDED coordinate system (OpenVR standard).
     /// </summary>
-    public Vector3 Position;
+    public Matrix4x4 PoseMatrix;
 
-    /// <summary>
-    /// Rotation in the right-handed coordinate system.
-    /// </summary>
-    public Quaternion Rotation;
+    public TrackerData()
+    {
+        PoseMatrix = Matrix4x4.identity;
+    }
 }
 
 /// <summary>

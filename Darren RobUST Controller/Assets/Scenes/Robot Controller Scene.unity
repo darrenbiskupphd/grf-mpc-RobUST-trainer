@@ -180,7 +180,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f616882f0f732a32be958a422cfab9c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  comTrackerSerial: LHR-2D89AB0C
+  comTrackerSerial: LHR-C3061E36
   endEffectorTrackerSerial: lhr-7979cfc9
 --- !u!114 &748268986
 MonoBehaviour:
