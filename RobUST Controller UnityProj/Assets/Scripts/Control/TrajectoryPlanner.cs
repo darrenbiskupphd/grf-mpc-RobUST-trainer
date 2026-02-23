@@ -5,14 +5,16 @@ using System.Collections.Generic;
 public enum TrajectoryMode
 {
     STABLE_STANDING,
-    LINEAR_PATH
+    LUNGE,
+    HOURGLASS
 }
 
 public class TrajectoryPlanner
 {
     // We can keep different pre-calculated buffers for different modes
     private RBState[] Xref_stable;
-    private RBState[] Xref_linear;
+    private RBState[] Xref_lunge;
+    private RBState[] Xref_hourglass;
     
     // Pointer to the currently active trajectory
     private RBState[] curr_Xref;
@@ -33,20 +35,33 @@ public class TrajectoryPlanner
         );
         for (int i = 0; i < Xref_stable.Length; i++) Xref_stable[i] = staticPoint;
 
-        // 2. Initialize a default Linear Path (e.g., swaying)
-        // Define waypoints relative to the static point
-        Span<RBState> waypoints = stackalloc RBState[]
+        // 2. Initialize lunge
+        Span<RBState> waypoints_lunge = stackalloc RBState[]
         {
             staticPoint,
-            staticPoint, // Start at center
-            new RBState(new double3(0.58, 0.58, -0.2), staticPoint.th, double3.zero, double3.zero),
-            new RBState(new double3(0.2, 0.8, -0.2), staticPoint.th, double3.zero, double3.zero),
-            new RBState(new double3(0.2, 0.8, -0.2), staticPoint.th, double3.zero, double3.zero),
-            new RBState(new double3(0.2, 0.8, -0.2), staticPoint.th, double3.zero, double3.zero),
-            new RBState(new double3(0.58, 0.58, -0.2), staticPoint.th, double3.zero, double3.zero),
+            staticPoint,
+            new RBState(new double3(0.58, 0.58, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero),
+            new RBState(staticPoint.p + new double3(0,0,-0.3), staticPoint.th, double3.zero, double3.zero),
+            new RBState(staticPoint.p + new double3(0,0,-0.3), staticPoint.th, double3.zero, double3.zero),
+            new RBState(staticPoint.p + new double3(0,0,-0.3), staticPoint.th, double3.zero, double3.zero),
+            new RBState(new double3(0.58, 0.58, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero),
             staticPoint // Back to center
         };
-        Xref_linear = InitializeLinearTrajectory(waypoints, 2.0, 1.0, 100.0);
+        Xref_lunge = InitializeLinearTrajectory(waypoints_lunge, 2.0, 1.0, 100.0);
+        
+        // 3. Initialize Hourglass (Skeleton)
+        Span<RBState> waypoints_hourglass = stackalloc RBState[]
+        {
+            staticPoint,
+            staticPoint,
+            new RBState(new double3(0.58, 0.58, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // back left
+            new RBState(new double3(0.58, 1.02, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // back right
+            new RBState(new double3(0.88, 0.58, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // front left
+            new RBState(new double3(0.88, 1.02, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // front right
+            staticPoint // Back to center
+        };
+        // Adjust moveDuration and pauseDuration as needed for the hourglass trajectory
+        Xref_hourglass = InitializeLinearTrajectory(waypoints_hourglass, 2.0, 1.0, 100.0);
 
         // Default to stable
         SetMode(TrajectoryMode.STABLE_STANDING);
@@ -60,8 +75,11 @@ public class TrajectoryPlanner
             case TrajectoryMode.STABLE_STANDING:
                 curr_Xref = Xref_stable;
                 break;
-            case TrajectoryMode.LINEAR_PATH:
-                curr_Xref = Xref_linear;
+            case TrajectoryMode.LUNGE:
+                curr_Xref = Xref_lunge;
+                break;
+            case TrajectoryMode.HOURGLASS:
+                curr_Xref = Xref_hourglass;
                 break;
         }
     }
