@@ -347,12 +347,12 @@ MonoBehaviour:
   currentControlMode: 0
   numCables: 4
   chestAPDistance: 0.35
-  chestMLDistance: 0.26
-  userMass: 68.5
-  userShoulderWidth: 0.45
-  userHeight: 1.75
+  chestMLDistance: 0.25
+  userMass: 68
+  userShoulderWidth: 0.46
+  userHeight: 1.78
   isLogging: 0
-  sessionName: Experiment
+  sessionName: Darren_HourGlass_MPC_5
   TrajMode: 0
 --- !u!4 &748268987
 Transform:
