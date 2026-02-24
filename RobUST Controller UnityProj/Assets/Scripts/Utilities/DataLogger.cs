@@ -50,7 +50,7 @@ public class DataLogger
     /// <summary>
     /// Records a frame into the buffer. This is thread-safe for a single writer.
     /// </summary>
-    public void Log(long timestamp, in double4x4 comPose, in double4x4 eePose, 
+    public void Log(long timestamp_tick, in double4x4 comPose, in double4x4 eePose, 
                     in ForcePlateData fp1, in ForcePlateData fp2, 
                     in Wrench goalWrench, in RBState goalState)
     {
@@ -59,7 +59,7 @@ public class DataLogger
         // Direct array access by reference to avoid structure copy
         ref DataFrame frame = ref _buffer[_cursor];
         
-        frame.Timestamp = (double)timestamp / (double)System.Diagnostics.Stopwatch.Frequency;
+        frame.Timestamp = (double)timestamp_tick / (double)System.Diagnostics.Stopwatch.Frequency;
         frame.ComPoseRF = comPose;
         frame.EEPoseRF = eePose;
         frame.FP1 = fp1;

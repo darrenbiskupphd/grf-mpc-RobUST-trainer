@@ -18,47 +18,47 @@ public class RobotController : MonoBehaviour
 
     [Header("Module References")]
     [Tooltip("The TrackerManager instance that provides tracker data.")]
-    public TrackerManager trackerManager;
+    [SerializeField] private TrackerManager trackerManager;
     [Tooltip("The ForcePlateManager instance for reading force plate data.")]
-    public ForcePlateManager forcePlateManager;
+    [SerializeField] private ForcePlateManager forcePlateManager;
     [Tooltip("The LabviewTcpCommunicator instance for sending motor commands.")]
-    public LabviewTcpCommunicator tcpCommunicator;
+    [SerializeField] private LabviewTcpCommunicator tcpCommunicator;
 
     [Header("Visualization")]
     [Tooltip("Handles tracker/camera visuals. Keeps RobotController logic-only.")]
-    public RobotVisualizer visualizer;
+    [SerializeField] private RobotVisualizer visualizer;
 
     [Header("Control Settings")]
     [Tooltip("Enable or disable sending commands to LabVIEW.")]
-    public bool isLabviewControlEnabled = true;
+    [SerializeField] private bool isLabviewControlEnabled = true;
     private bool isForcePlateEnabled = true;
 
     public enum CONTROL_MODE { OFF, TRANSPARENT, MPC, IMPEDANCE }
-    public volatile CONTROL_MODE currentControlMode = CONTROL_MODE.OFF;
+    [SerializeField] private volatile CONTROL_MODE currentControlMode = CONTROL_MODE.OFF;
 
     [Header("Robot Geometry Configuration")]
     [Tooltip("Number of cables in the system. We currently support 8 or 4 cables")]
-    public int numCables = 8;
+    [SerializeField] private int numCables = 8;
     [Tooltip("Measured thickness of the chest in the anterior-posterior direction [m].")]
-    public float chestAPDistance = 0.2f;
+    [SerializeField] private float chestAPDistance = 0.2f;
     [Tooltip("Measured width of the chest in the medial-lateral direction [m].")]
-    public float chestMLDistance = 0.3f;
+    [SerializeField] private float chestMLDistance = 0.3f;
     [Tooltip("User body mass [kg].")]
-    public float userMass = 70.0f;
+    [SerializeField] private float userMass = 70.0f;
     [Tooltip("User shoulder width [m].")]
-    public float userShoulderWidth = 0.4f;
+    [SerializeField] private float userShoulderWidth = 0.4f;
     [Tooltip("User height (feet to head) [m].")]
-    public float userHeight = 1.5f;
+    [SerializeField] private float userHeight = 1.5f;
 
     [Header("Data Logging")]
     [Tooltip("Check this to record data to RAM. It will be saved to disk on Stop.")]
-    public volatile bool isLogging = false;
+    [SerializeField] private volatile bool isLogging = false;
     [Tooltip("Name of the experiment session for the log file.")]
-    public string sessionName = "Experiment";
+    [SerializeField] private string sessionName = "Experiment";
 
     [Header("Trajectory Control")]
     [Tooltip("Change this during runtime to switch trajectory modes.")]
-    public TrajectoryMode TrajMode = TrajectoryMode.STABLE_STANDING;
+    [SerializeField] private TrajectoryMode TrajMode = TrajectoryMode.STABLE_STANDING;
 
     private RobUSTDescription robotDescription;
     private DataLogger dataLogger;
