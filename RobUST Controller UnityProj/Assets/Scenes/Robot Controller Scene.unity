@@ -345,14 +345,14 @@ MonoBehaviour:
   visualizer: {fileID: 748268991}
   isLabviewControlEnabled: 1
   currentControlMode: 0
-  numCables: 4
-  chestAPDistance: 0.35
-  chestMLDistance: 0.25
-  userMass: 68
-  userShoulderWidth: 0.46
-  userHeight: 1.78
+  numCables: 8
+  chestAPDistance: 0.2032
+  chestMLDistance: 0.3048
+  userMass: 62.14
+  userShoulderWidth: 0.34
+  userHeight: 1.68
   isLogging: 0
-  sessionName: Darren_HourGlass_MPC_5
+  sessionName: Zibo_SEBT_Imp_2
   TrajMode: 0
 --- !u!4 &748268987
 Transform:

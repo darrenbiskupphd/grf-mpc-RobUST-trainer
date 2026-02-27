@@ -138,7 +138,7 @@ public class RobotController : MonoBehaviour
 
         // Finally Initialize Controller modules and begin control thread
         mpcSolver = new MPCSolver(robotDescription, 0.05, 10);
-        impedanceController = new ImpedanceController();
+        impedanceController = new ImpedanceController(userMass);
         tensionPlanner = new CableTensionPlanner(robotDescription);
         trajectoryPlanner = new TrajectoryPlanner();
         
@@ -211,6 +211,9 @@ public class RobotController : MonoBehaviour
             trackerManager.GetCoMTrackerData(out TrackerData rawComData);
             double4x4 eePose_RF = math.mul(frameInv, ToDouble4x4(rawEndEffectorData.PoseMatrix));
             double4x4 comPose_RF = math.mul(frameInv, ToDouble4x4(rawComData.PoseMatrix));
+
+            // Debug.Log($"comPose_RF: {comPose_RF.c3}");
+
             // FP already in robot frame
             forcePlateManager.GetForcePlateData(0, out ForcePlateData fp0);
             forcePlateManager.GetForcePlateData(1, out ForcePlateData fp1);
