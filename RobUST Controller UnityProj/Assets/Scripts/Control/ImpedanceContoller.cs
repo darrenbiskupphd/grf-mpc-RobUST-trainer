@@ -26,11 +26,11 @@ public class ImpedanceController : BaseController<Wrench>
     private RBState targetState;
     private bool isStateValid = false;
 
-    public ImpedanceController()
+    public ImpedanceController(float userMass)
     {
         // Default gains
-        double K_pos_xy = 500.0;
-        double K_pos_z = 1100;
+        double K_pos_xy = 500.0 / 68.0 * userMass;
+        double K_pos_z = 1100 / 68.0 * userMass;
         K_pos = new double3(K_pos_xy, K_pos_xy, K_pos_z);
         D_pos = new double3(.01, .01, .01);
         K_ori = new double3(1, 1, 1);

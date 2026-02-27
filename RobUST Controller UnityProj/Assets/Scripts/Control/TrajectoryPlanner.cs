@@ -28,7 +28,7 @@ public class TrajectoryPlanner
         // 1. Initialize Stable Standing (Permanent Buffer)
         Xref_stable = new RBState[1]; // fill horizon handles 
         RBState staticPoint = new RBState(
-            new double3(0.2, 0.8, 0.05), 
+            new double3(0.2, 0.825, 0.01),
             new double3(0, 0, -math.PI/2), 
             new double3(0, 0, 0), 
             new double3(0, 0, 0)
@@ -40,11 +40,11 @@ public class TrajectoryPlanner
         {
             staticPoint,
             staticPoint,
-            new RBState(new double3(0.58, 0.63, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero),
+            new RBState(new double3(0.58, 0.68, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero),
             new RBState(staticPoint.p + new double3(0,0,-0.2), staticPoint.th, double3.zero, double3.zero),
             new RBState(staticPoint.p + new double3(0,0,-0.2), staticPoint.th, double3.zero, double3.zero),
             new RBState(staticPoint.p + new double3(0,0,-0.2), staticPoint.th, double3.zero, double3.zero),
-            new RBState(new double3(0.58, 0.63, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero),
+            new RBState(new double3(0.58, 0.68, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero),
             staticPoint // Back to center
         };
         Xref_lunge = InitializeLinearTrajectory(waypoints_lunge, 2.0, 1.0, 100.0);
@@ -54,9 +54,9 @@ public class TrajectoryPlanner
         {
             staticPoint,
             staticPoint,
-            new RBState(new double3(0.58, 0.63, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // back left
+            new RBState(new double3(0.58, 0.68, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // back left
             new RBState(new double3(0.58, 1.02, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // back right
-            new RBState(new double3(-0.07, 0.63, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // front left
+            new RBState(new double3(-0.07, 0.68, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // front left
             new RBState(new double3(-0.07, 1.02, staticPoint.p.z), staticPoint.th, double3.zero, double3.zero), // front right
             staticPoint // Back to center
         };
