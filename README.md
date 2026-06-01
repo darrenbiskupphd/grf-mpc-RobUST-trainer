@@ -2,17 +2,17 @@
 
 This repository contains the Unity C# implementation of the GRF-Aware Model Predictive Controller for the RobUST cable-driven rehabilitation platform. 
 
-Unlike traditional quasi-static, position-based controllers (e.g., ZMP-constrained 8-cable impedance control), this project introduces a proactive, dynamics-aware framework adapted from legged robotics. By explicitly integrating live Ground Reaction Force (GRF) data and centroidal dynamics into a convex Quadratic Program (QP), the system provides fluid, underactuated (4-cable) assistance that respects the user's natural balance dynamics.
+Unlike traditional error-based controllers (e.g., ZMP-constrained 8-cable impedance control), this project introduces a proactive, dynamics-aware framework adapted from legged robotics. By explicitly integrating live Ground Reaction Force data and formulating an MPC problem around centroidal dynamics, the system provides more fluid assistance that respects the user's active balance inputs.
 
 ## Core Methodology
 
 ### Centroidal Dynamics & SRB Approximation
 To compute predictive control without requiring a full-body multicamera motion capture system, this controller reduces the human user to a **Single Rigid Body (SRB)** model. 
-* **State Tracking:** A single HTC Vive tracker on the posterior pelvis (sacrum) serves as a reliable proxy for the user's Center of Mass (CoM) position and velocity.
-* **GRF Integration:** Floor-mounted force plates stream live Center of Pressure (CoP) and GRF vectors at 100 Hz to close the dynamic feedback loop.
+* **State Tracking:** A single HTC Vive tracker on the posterior pelvis (sacrum) serves as a proxy for the user's CoM position and principle inertial axis orientation.
+* **GRF Integration:** Floor-mounted force plates stream live Center of Pressure and GRF vectors at 100 Hz to close the dynamic feedback loop.
 * **Control Objective:** The MPC optimizes cable tensions over a finite horizon (0.5s look-ahead) to manipulate the user's centroidal dynamics, prioritizing fall-prevention (vertical CoM and pitch/roll rates) while allowing horizontal/planar compliance.
 
-### The Convex QP Formulation
+### QP Formulation
 The MPC is formulated as a condensed convex Quadratic Program solved in soft real-time using the **ALGLIB** `minqp` solver. 
 * **State Vector:** 12-dimensional (CoM position, Euler angles, linear velocity, angular velocity).
 * **Input:** Tension commands for a 4-cable underactuated setup.
@@ -42,7 +42,7 @@ This repository includes the three specific task protocols used to validate the 
 ## Running the Experiments
 
 ### Prerequisites
-* For Impedance Control, the physical RobUST system must be configured in the **8-cable (underactuated)** arrangement.
+* For Impedance Control, the physical RobUST system must be configured in the **8-cable (fully actuated)** arrangement.
 * Vicon Force Plates must be calibrated and streaming via the `ForcePlateManager`.
 * The user's specific biometrics (mass, height, shoulder width) must be accurately entered into the Unity Inspector to correctly scale the inertia tensor and compute cable attachment points.
 * Base system setup and hardware calibration must be completed as per the [RobUST Boilerplate](INSERT_LINK_HERE) documentation.
